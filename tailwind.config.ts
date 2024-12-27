@@ -9,10 +9,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        // Tambahkan warna kustom jika perlu
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require("@catppuccin/tailwindcss")({
+      defaultFlavour: "macchiato",
+    }),
+  ],
 } satisfies Config;
