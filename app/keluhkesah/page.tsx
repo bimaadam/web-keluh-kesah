@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   collection,
   getDocs,
@@ -8,12 +8,13 @@ import {
   orderBy,
   doc,
   updateDoc,
-  addDoc, // Untuk menambah komentar
-  serverTimestamp // Untuk timestamp komentar
+  addDoc,
+  serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../../utils/firebase'; // Pastikan db diimpor
-import { motion, AnimatePresence } from 'framer-motion'; // Import AnimatePresence
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast, Toaster } from 'react-hot-toast';
+import { db } from '@/utils/firebase';
+
 
 // --- Definisi Tipe dan Konstan ---
 
@@ -22,15 +23,13 @@ interface Entry {
   name: string;
   message: string;
   timestamp?: any;
-  // Reaksi Lama
   relatableCount?: number;
   deepCount?: number;
   hugsCount?: number;
-  // Reaksi Baru
-  laughCount?: number; // Reaksi: Ketawa
-  sadCount?: number;   // Reaksi: Sedih
-  thumbUpCount?: number; // Reaksi: Jempol
-  hugEmojiCount?: number; // Reaksi: Peluk (Nama berbeda agar tidak bentrok dengan hugsCount lama)
+  laughCount?: number;
+  sadCount?: number;
+  thumbUpCount?: number;
+  hugEmojiCount?: number;
 }
 
 interface Comment {
@@ -40,57 +39,14 @@ interface Comment {
   timestamp: any;
 }
 
-// Objek untuk menyimpan detail reaksi
 const reactions = {
-  relatable: {
-    emoji: '🔥',
-    votedEmoji: '❤️‍🔥',
-    label: 'Relatable',
-    color: 'bg-mauve',
-    hoverColor: 'hover:bg-mauve/80'
-  },
-  deep: {
-    emoji: '🤔',
-    votedEmoji: '🧠',
-    label: 'Deep',
-    color: 'bg-blue',
-    hoverColor: 'hover:bg-blue/80'
-  },
-  hugs: {
-    emoji: '🫂',
-    votedEmoji: '🤗',
-    label: 'Hugs',
-    color: 'bg-green',
-    hoverColor: 'hover:bg-green/80'
-  },
-  laugh: { // Reaksi baru: Ketawa
-    emoji: '😂',
-    votedEmoji: '🤣',
-    label: 'Ketawa',
-    color: 'bg-yellow-500', // Warna baru
-    hoverColor: 'hover:bg-yellow-500/80'
-  },
-  sad: { // Reaksi baru: Sedih
-    emoji: '😢',
-    votedEmoji: '😭',
-    label: 'Sedih',
-    color: 'bg-sky-500', // Warna baru
-    hoverColor: 'hover:bg-sky-500/80'
-  },
-  thumbUp: { // Reaksi baru: Jempol
-    emoji: '👍',
-    votedEmoji: '👍🏽',
-    label: 'Jempol',
-    color: 'bg-teal-500', // Warna baru
-    hoverColor: 'hover:bg-teal-500/80'
-  },
-  hugEmoji: { // Reaksi baru: Peluk (diubah namanya agar tidak bentrok dengan 'hugs')
-    emoji: '🥺',
-    votedEmoji: '🥹',
-    label: 'Peluk',
-    color: 'bg-pink', // Warna baru
-    hoverColor: 'hover:bg-pink/80'
-  },
+  relatable: { emoji: '🔥', votedEmoji: '❤️‍🔥', label: 'Relatable', color: 'bg-mauve', hoverColor: 'hover:bg-mauve/80' },
+  deep: { emoji: '🤔', votedEmoji: '🧠', label: 'Deep', color: 'bg-blue', hoverColor: 'hover:bg-blue/80' },
+  hugs: { emoji: '🫂', votedEmoji: '🤗', label: 'Hugs', color: 'bg-green', hoverColor: 'hover:bg-green/80' },
+  laugh: { emoji: '😂', votedEmoji: '🤣', label: 'Ketawa', color: 'bg-yellow-500', hoverColor: 'hover:bg-yellow-500/80' },
+  sad: { emoji: '😢', votedEmoji: '😭', label: 'Sedih', color: 'bg-sky-500', hoverColor: 'hover:bg-sky-500/80' },
+  thumbUp: { emoji: '👍', votedEmoji: '👍🏽', label: 'Jempol', color: 'bg-teal-500', hoverColor: 'hover:bg-teal-500/80' },
+  hugEmoji: { emoji: '🥺', votedEmoji: '🥹', label: 'Peluk', color: 'bg-pink', hoverColor: 'hover:bg-pink/80' },
 };
 
 const emotionEmojisForRandom = ['😔', '😟', '🙁', '😥', '💔', '🫠', '💭', '😢', '😞'];
@@ -98,9 +54,7 @@ const getRandomEmoji = () => {
   return emotionEmojisForRandom[Math.floor(Math.random() * emotionEmojisForRandom.length)];
 };
 
-// --- Helper untuk localStorage (melacak reaksi & komentar per entri) ---
-
-// Melacak reaksi: { "entryId": { "reactionType1": true, "reactionType2": false }, ... }
+// --- Helper untuk localStorage ---
 const getVotedReactions = () => {
   if (typeof window === 'undefined') return {};
   const saved = localStorage.getItem('votedReactions');
@@ -112,7 +66,6 @@ const saveVotedReactions = (voted: { [entryId: string]: { [reactionType: string]
   }
 };
 
-// Melacak status expand komentar: { "entryId": true/false, ... }
 const getExpandedComments = () => {
   if (typeof window === 'undefined') return {};
   const saved = localStorage.getItem('expandedComments');
@@ -124,7 +77,6 @@ const saveExpandedComments = (expanded: { [entryId: string]: boolean }) => {
   }
 };
 
-
 // --- Komponen KeluhKesah ---
 
 const KeluhKesah: React.FC = () => {
@@ -133,13 +85,15 @@ const KeluhKesah: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [votedReactions, setVotedReactions] = useState<{ [entryId: string]: { [reactionType: string]: boolean } }>(getVotedReactions);
   const [expandedComments, setExpandedComments] = useState<{ [entryId: string]: boolean }>(getExpandedComments);
-  const [commentsData, setCommentsData] = useState<{ [entryId: string]: Comment[] }>({}); // Untuk menyimpan komentar per entri
+  const [commentsData, setCommentsData] = useState<{ [entryId: string]: Comment[] }>({});
 
-  // State untuk form komentar
   const [newCommentName, setNewCommentName] = useState<string>('');
   const [newCommentText, setNewCommentText] = useState<string>('');
-  const [submittingCommentFor, setSubmittingCommentFor] = useState<string | null>(null); // Entry ID yang sedang disubmit komentarnya
+  const [submittingCommentFor, setSubmittingCommentFor] = useState<string | null>(null);
 
+  // useRef ini tidak lagi digunakan untuk fitur bagikan gambar, tapi tetap bisa ada jika dibutuhkan di masa depan.
+  // Jika tidak ada kebutuhan lain, bisa dihapus. Untuk saat ini, saya biarkan saja.
+  const entryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,7 +106,6 @@ const KeluhKesah: React.FC = () => {
           relatableCount: doc.data().relatableCount || 0,
           deepCount: doc.data().deepCount || 0,
           hugsCount: doc.data().hugsCount || 0,
-          // Inisialisasi reaksi baru
           laughCount: doc.data().laughCount || 0,
           sadCount: doc.data().sadCount || 0,
           thumbUpCount: doc.data().thumbUpCount || 0,
@@ -170,16 +123,13 @@ const KeluhKesah: React.FC = () => {
     fetchData();
   }, []);
 
-  // Simpan votedReactions ke localStorage setiap kali berubah
   useEffect(() => {
     saveVotedReactions(votedReactions);
   }, [votedReactions]);
 
-  // Simpan expandedComments ke localStorage setiap kali berubah
   useEffect(() => {
     saveExpandedComments(expandedComments);
   }, [expandedComments]);
-
 
   const handleReactionClick = async (entryId: string, reactionType: keyof typeof reactions) => {
     const hasVotedForThisReaction = votedReactions[entryId]?.[reactionType];
@@ -196,25 +146,20 @@ const KeluhKesah: React.FC = () => {
       const entryRef = doc(db, 'keluhkesah', entryId);
       const currentEntry = entries.find(e => e.id === entryId);
 
-      // Pastikan properti count ada (misal: 'relatableCount')
       const countFieldName = `${reactionType}Count`;
-      // Handle cases where the field name might slightly differ (e.g., 'hugEmoji' vs 'hugs')
-      const count = (currentEntry as any)?.[countFieldName] || 0; // Use 'any' for dynamic access
+      const count = (currentEntry as any)?.[countFieldName] || 0;
       const newCount = count + 1;
 
-      // Update di Firestore
       await updateDoc(entryRef, {
         [countFieldName]: newCount
       });
 
-      // Update state lokal untuk tampilan instan
       setEntries(prevEntries =>
         prevEntries.map(entry =>
           entry.id === entryId ? { ...(entry as any), [countFieldName]: newCount } : entry
         )
       );
 
-      // Tandai reaksi ini sudah divote
       setVotedReactions(prev => ({
         ...prev,
         [entryId]: {
@@ -236,16 +181,13 @@ const KeluhKesah: React.FC = () => {
   };
 
   const toggleComments = async (entryId: string) => {
-    // Jika komentar sudah diekspansi, tutup saja
     if (expandedComments[entryId]) {
       setExpandedComments(prev => ({ ...prev, [entryId]: false }));
       return;
     }
 
-    // Jika belum diekspansi, buka dan muat komentarnya
     setExpandedComments(prev => ({ ...prev, [entryId]: true }));
 
-    // Hanya muat komentar jika belum ada atau perlu refresh
     if (!commentsData[entryId] || commentsData[entryId].length === 0) {
       try {
         const q = query(collection(db, 'keluhkesah', entryId, 'comments'), orderBy('timestamp', 'asc'));
@@ -273,16 +215,15 @@ const KeluhKesah: React.FC = () => {
       return;
     }
 
-    setSubmittingCommentFor(entryId); // Set loading state for this entry's comment form
+    setSubmittingCommentFor(entryId);
 
     try {
       await addDoc(collection(db, 'keluhkesah', entryId, 'comments'), {
-        name: newCommentName || 'Anonim', // Default to Anonim if name is empty
-        comment: newCommentText,
-        timestamp: serverTimestamp(), // Use serverTimestamp for consistency
+        name: newCommentName.trim() || 'Anonim',
+        comment: newCommentText.trim(),
+        timestamp: serverTimestamp(),
       });
 
-      // Fetch comments again to update the list immediately
       const q = query(collection(db, 'keluhkesah', entryId, 'comments'), orderBy('timestamp', 'asc'));
       const querySnapshot = await getDocs(q);
       const updatedComments = querySnapshot.docs.map(doc => ({
@@ -291,7 +232,7 @@ const KeluhKesah: React.FC = () => {
       })) as Comment[];
 
       setCommentsData(prev => ({ ...prev, [entryId]: updatedComments }));
-      setNewCommentName(''); // Clear form
+      setNewCommentName('');
       setNewCommentText('');
       toast.success('Komentar berhasil ditambahkan! 🎉', {
         style: { borderRadius: '10px', background: '#333', color: '#fff' },
@@ -303,12 +244,10 @@ const KeluhKesah: React.FC = () => {
         style: { borderRadius: '10px', background: '#333', color: '#fff' },
       });
     } finally {
-      setSubmittingCommentFor(null); // Reset loading state
+      setSubmittingCommentFor(null);
     }
   };
 
-
-  // Varian untuk animasi kemunculan entri
   const entryVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -317,57 +256,64 @@ const KeluhKesah: React.FC = () => {
       transition: {
         type: "spring",
         stiffness: 100,
-        damping: 10
+        damping: 10,
+        delay: 0.1
       }
     }
   };
 
-  // Varian untuk animasi komentar (muncul/hilang)
   const commentSectionVariants = {
-    hidden: { opacity: 0, height: 0 },
-    visible: { opacity: 1, height: "auto", transition: { duration: 0.3, ease: "easeOut" } },
-    exit: { opacity: 0, height: 0, transition: { duration: 0.2, ease: "easeOut" } }
+    hidden: { opacity: 0, height: 0, transition: { duration: 0.2, ease: "easeOut" } },
+    visible: { opacity: 1, height: "auto", transition: { duration: 0.4, ease: "easeOut" } },
   };
 
   const commentItemVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } }
   };
 
-
   return (
-    <div className="min-h-screen bg-base flex flex-col items-center py-8 px-4">
+    <div className="min-h-screen bg-base flex flex-col items-center py-12 px-4 font-sans text-subtext0 relative overflow-hidden">
       <Toaster />
 
-      <header className="text-center mb-8">
-        <h1 className="text-4xl font-extrabold text-mauve mb-4 drop-shadow-md">
-          Keluh Kesah Bersama 🫂
+      {/* Background blobs/shapes for aesthetic */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-mauve/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob lg:w-96 lg:h-96"></div>
+      <div className="absolute top-1/2 right-0 w-64 h-64 bg-pink/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000 lg:w-96 lg:h-96"></div>
+      <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-lavender/20 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000 lg:w-96 lg:h-96"></div>
+
+      <header className="text-center mb-10 px-2 md:px-0 z-10">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-mauve mb-3 drop-shadow-lg leading-tight tracking-wide">
+          Keluh Kesah Bersama <span className="text-lavender">🫂</span>
         </h1>
-        <p className="text-pink text-lg max-w-xl">
-          Lihat keluh kesah pengguna lain di sini, siapa tahu ada yang **relatable banget** sama kamu. Yuk, scroll ke bawah dan rasakan koneksinya! 👇
+        <p className="text-pink text-base sm:text-lg max-w-xl mx-auto font-light leading-relaxed">
+          Lihat keluh kesah pengguna lain di sini, siapa tahu ada yang **relatable banget** sama kamu. Yuk, scroll ke bawah dan rasakan koneksinya!
         </p>
       </header>
 
-      <div className="space-y-6 w-full max-w-3xl">
+      <div className="space-y-6 w-full max-w-3xl lg:max-w-4xl px-2 sm:px-0 z-10">
         {isLoading ? (
           Array(3)
             .fill(0)
             .map((_, index) => (
               <div
                 key={index}
-                className="animate-pulse bg-surface1 rounded-lg h-36 w-full shadow-md p-6 flex flex-col justify-between"
+                className="animate-pulse bg-surface1/70 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-surface0 h-52 sm:h-56 flex flex-col justify-between"
               >
-                <div className="h-5 bg-gray-400 rounded w-2/5 mb-3"></div>
-                <div className="h-4 bg-gray-400 rounded w-full mb-2"></div>
-                <div className="h-4 bg-gray-400 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-gray-500 rounded w-1/2 self-end"></div>
+                <div className="h-7 bg-gray-600 rounded-lg w-2/5 mb-4"></div>
+                <div className="h-5 bg-gray-500 rounded-lg w-full mb-3"></div>
+                <div className="h-5 bg-gray-500 rounded-lg w-3/4 mb-5"></div>
+                <div className="flex justify-end gap-3 mt-auto">
+                  <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
+                  <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
+                  <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
+                </div>
               </div>
             ))
         ) : error ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/20 text-red-300 p-4 rounded-lg text-center flex items-center justify-center gap-2"
+            className="bg-red-500/30 text-red-300 p-6 rounded-lg text-center flex items-center justify-center gap-2 border border-red-400/50"
           >
             😔 {error}
           </motion.div>
@@ -375,10 +321,10 @@ const KeluhKesah: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-surface1 text-subtext0 p-6 rounded-lg text-center shadow-md border-l-4 border-yellow-500"
+            className="bg-surface1/70 backdrop-blur-sm text-subtext0 p-8 rounded-xl text-center shadow-xl border border-surface0"
           >
-            <p className="text-2xl mb-2">Belum ada keluh kesah nih... 🤫</p>
-            <p className="text-lg">
+            <p className="text-xl sm:text-2xl mb-3 font-semibold text-lavender">Belum ada keluh kesah nih... 🤫</p>
+            <p className="text-base sm:text-lg text-subtext0 leading-relaxed">
               Mungkin kamu bisa jadi yang pertama berbagi? Tekan tombol "Mulai Keluh Kesah" di halaman utama ya! ✨
             </p>
           </motion.div>
@@ -388,37 +334,53 @@ const KeluhKesah: React.FC = () => {
             const isCommentsExpanded = expandedComments[entry.id];
             const currentComments = commentsData[entry.id] || [];
 
+            const formattedDate = entry.timestamp?.toDate ? new Date(entry.timestamp.toDate()).toLocaleDateString('id-ID', {
+              day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Waktu tidak tersedia';
+
             return (
               <motion.div
                 key={entry.id}
-                className="bg-surface1 shadow-md rounded-lg p-6 border-l-4 border-lavender flex flex-col gap-2"
+                // Ref `entryRefs` dihapus karena tidak lagi digunakan untuk fitur bagikan gambar.
+                className={`
+                  bg-surface1/70 backdrop-blur-sm shadow-xl rounded-xl p-5 sm:p-7 border border-surface0 flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-mauve/50
+                `}
                 initial="hidden"
                 animate="visible"
+                variants={entryVariants}
                 custom={index}
               >
-                <h2 className="text-lg font-semibold text-mauve flex items-center gap-2">
-                  {entry.name} <span className="text-sm text-subtext1">berkata:</span>
-                  <span className="text-xl leading-none" role="img" aria-label="emoji">{getRandomEmoji()}</span>
-                </h2>
-                <p className="text-white italic">"{entry.message}"</p>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
+                  <h2 className="text-lg sm:text-xl font-bold text-mauve flex items-center gap-2 mb-2 sm:mb-0 leading-snug">
+                    {entry.name}
+                    <span className="text-sm text-subtext1 font-normal">berkata:</span>
+                    <span className="text-xl sm:text-2xl leading-none" role="img" aria-label="emoji">{getRandomEmoji()}</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-subtext1 opacity-80 mt-1 sm:mt-0 text-right font-light">
+                    {formattedDate}
+                  </p>
+                </div>
+                <p className="text-white text-base sm:text-lg italic leading-relaxed mb-5">"{entry.message}"</p>
 
                 {/* Bagian Reaksi */}
-                <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-surface0">
+                <div className={`
+                  flex flex-wrap items-center justify-end gap-2 sm:gap-3 mt-auto pt-4 border-t border-surface0/50
+                `}>
                   {Object.entries(reactions).map(([type, reactionInfo]) => {
-                    const count = (entry as any)[`${type}Count`] || 0; // Access count dynamically
+                    const count = (entry as any)[`${type}Count`] || 0;
                     const isVoted = entryVotedReactions[type];
 
                     return (
                       <motion.button
                         key={type}
                         onClick={() => handleReactionClick(entry.id, type as keyof typeof reactions)}
-                        whileHover={{ scale: 1.1 }}
+                        whileHover={{ scale: 1.1, boxShadow: "0 0 10px rgba(var(--color-mauve-rgb), 0.5)" }}
                         whileTap={{ scale: 0.9 }}
-                        className={`flex items-center gap-1 py-1 px-3 rounded-full text-xs font-medium transition-all duration-200
-                          ${isVoted ? reactionInfo.color + ' text-white' : 'bg-surface0 text-text hover:text-black ' + reactionInfo.hoverColor}`}
+                        className={`flex items-center gap-1 py-1 px-2 sm:px-3 rounded-full text-xs sm:text-sm font-medium transition-all duration-200
+                          ${isVoted ? reactionInfo.color + ' text-white shadow-md' : 'bg-surface0 text-text hover:text-black ' + reactionInfo.hoverColor}`}
                       >
                         {isVoted ? reactionInfo.votedEmoji : reactionInfo.emoji}
-                        <span className="ml-1 text-xs font-bold">
+                        <span className="ml-0.5 sm:ml-1 text-xs sm:text-sm font-bold opacity-90">
                           {count}
                         </span>
                       </motion.button>
@@ -426,30 +388,37 @@ const KeluhKesah: React.FC = () => {
                   })}
                 </div>
 
-                {/* Tombol Komentar */}
-                <div className="flex justify-end mt-2">
+                {/* Tombol Komentar saja (Tombol Bagikan Gambar telah dihapus) */}
+                <div className={`flex justify-end items-center mt-4`}> {/* Hanya justify-end */}
                   <motion.button
                     onClick={() => toggleComments(entry.id)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-1 text-sm text-subtext1 hover:text-lavender transition-colors"
+                    className="flex items-center gap-1 text-sm sm:text-base text-subtext1 hover:text-lavender transition-colors font-medium opacity-80 hover:opacity-100"
                   >
-                    {isCommentsExpanded ? 'Sembunyikan Komentar 👆' : 'Lihat/Tambah Komentar 👇'}
+                    {isCommentsExpanded ? 'Sembunyikan Komentar 👆' : `Lihat/Tambah Komentar (${currentComments.length}) 👇`}
                   </motion.button>
                 </div>
+
+                {/* Watermark khusus untuk mode capture dihapus karena fitur telah dihapus */}
+                {/* <div className={`absolute bottom-2 right-2 text-mauve text-xs opacity-70 font-semibold tracking-wider ${capturingEntryId === entry.id ? 'block' : 'hidden'}`}>
+                  KeluhKesahBersama.com
+                </div> */}
+
 
                 {/* Bagian Komentar (animasi dengan AnimatePresence) */}
                 <AnimatePresence>
                   {isCommentsExpanded && (
                     <motion.div
-                      key="comments-section" // Key is important for AnimatePresence
+                      key="comments-section"
+                      variants={commentSectionVariants}
                       initial="hidden"
                       animate="visible"
-                      exit="exit"
-                      className="mt-4 pt-4 border-t border-surface0 space-y-3"
+                      exit="hidden"
+                      className="mt-5 pt-5 border-t border-surface0/50 space-y-4"
                     >
-                      {currentComments.length === 0 ? (
-                        <p className="text-sm text-subtext1 text-center italic">
+                      {currentComments.length === 0 && !isLoading ? (
+                        <p className="text-sm text-subtext1 text-center italic py-3 opacity-70">
                           Belum ada komentar di sini. Jadilah yang pertama! 💬
                         </p>
                       ) : (
@@ -459,55 +428,55 @@ const KeluhKesah: React.FC = () => {
                             variants={commentItemVariants}
                             initial="hidden"
                             animate="visible"
-                            transition={{ delay: commentIndex * 0.05 }} // Stagger comments
-                            className="bg-surface0 p-3 rounded-lg border border-surface1"
+                            transition={{ delay: commentIndex * 0.08 }}
+                            className="bg-surface0/70 backdrop-blur-sm p-4 rounded-lg border border-surface1/50 flex flex-col shadow-sm"
                           >
-                            <p className="text-sm font-semibold text-text">
-                              {comment.name} <span className="text-xs text-subtext1">mengomentari:</span>
+                            <p className="text-sm font-semibold text-text flex items-center gap-1 leading-tight">
+                              {comment.name} <span className="text-xs text-subtext1 font-light opacity-90">mengomentari:</span>
                             </p>
-                            <p className="text-sm text-white italic">"{comment.comment}"</p>
-                            <p className="text-xs text-subtext1 mt-1 text-right">
-                              {new Date(comment.timestamp?.toDate()).toLocaleString()}
+                            <p className="text-sm text-white italic mt-1 leading-relaxed">"{comment.comment}"</p>
+                            <p className="text-xs text-subtext1 mt-2 text-right opacity-70">
+                              {new Date(comment.timestamp?.toDate()).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </motion.div>
                         ))
                       )}
 
                       {/* Form Tambah Komentar */}
-                      <div className="mt-4 p-4 bg-surface0 rounded-lg border border-surface1">
-                        <h3 className="text-md font-semibold text-mauve mb-3">Tambah Komentar Baru:</h3>
+                      <div className="mt-5 p-5 bg-surface0/70 backdrop-blur-sm rounded-xl border border-surface1/50 shadow-inner">
+                        <h3 className="text-base sm:text-lg font-semibold text-mauve mb-4">Tambah Komentar Baru:</h3>
                         <input
                           type="text"
-                          placeholder="Nama kamu (opsional)"
+                          placeholder="Nama kamu (opsional, maks 30 karakter)"
                           value={newCommentName}
                           onChange={(e) => setNewCommentName(e.target.value)}
-                          className="w-full p-2 mb-2 rounded-lg bg-base text-white focus:outline-none focus:ring-1 focus:ring-lavender placeholder-subtext1 text-sm"
+                          className="w-full p-3 mb-3 rounded-lg bg-base/60 text-white focus:outline-none focus:ring-2 focus:ring-lavender placeholder-subtext1 text-sm sm:text-base border border-surface0"
                           maxLength={30}
                         />
                         <textarea
-                          placeholder="Ketik komentar di sini..."
+                          placeholder="Ketik komentar di sini... (maks 200 karakter)"
                           value={newCommentText}
                           onChange={(e) => setNewCommentText(e.target.value)}
-                          className="w-full p-2 rounded-lg bg-base text-white focus:outline-none focus:ring-1 focus:ring-lavender resize-y min-h-[60px] max-h-[150px] placeholder-subtext1 text-sm"
+                          className="w-full p-3 rounded-lg bg-base/60 text-white focus:outline-none focus:ring-2 focus:ring-lavender resize-y min-h-[70px] max-h-[150px] placeholder-subtext1 text-sm sm:text-base border border-surface0"
                           rows={3}
                           maxLength={200}
                           required
                         ></textarea>
-                        <p className="text-right text-xs text-subtext1 mt-1">
+                        <p className="text-right text-xs text-subtext1 mt-2 opacity-80">
                           {newCommentText.length} / 200 karakter
                         </p>
                         <motion.button
                           onClick={() => handleCommentSubmit(entry.id)}
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(var(--color-pink-rgb), 0.7)" }}
                           whileTap={{ scale: 0.95 }}
-                          className={`mt-3 w-full py-2 px-4 rounded-lg font-bold text-white transition duration-300 flex items-center justify-center gap-2
-                            ${submittingCommentFor === entry.id ? 'bg-mauve/70 cursor-not-allowed' : 'bg-lavender hover:bg-pink'}`}
+                          className={`mt-4 w-full py-2.5 px-4 rounded-lg font-bold text-white transition duration-300 flex items-center justify-center gap-2 text-base sm:text-lg
+                            ${submittingCommentFor === entry.id ? 'bg-mauve/60 cursor-not-allowed' : 'bg-lavender hover:bg-pink hover:shadow-lg'}`}
                           disabled={submittingCommentFor === entry.id}
                         >
                           {submittingCommentFor === entry.id ? (
-                            <>Mengirim... 🌀</>
+                            <>Mengirim... <span className="animate-spin">🌀</span></>
                           ) : (
-                            <>Kirim Komentar 🎉</>
+                            <>Kirim Komentar <span className="text-xl">🎉</span></>
                           )}
                         </motion.button>
                       </div>
