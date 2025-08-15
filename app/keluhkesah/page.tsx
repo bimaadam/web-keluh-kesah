@@ -347,7 +347,6 @@ const KeluhKesah: React.FC = () => {
                 `}
                 initial="hidden"
                 animate="visible"
-                variants={entryVariants}
                 custom={index}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
@@ -411,7 +410,6 @@ const KeluhKesah: React.FC = () => {
                   {isCommentsExpanded && (
                     <motion.div
                       key="comments-section"
-                      variants={commentSectionVariants}
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
@@ -425,7 +423,6 @@ const KeluhKesah: React.FC = () => {
                         currentComments.map((comment, commentIndex) => (
                           <motion.div
                             key={comment.id}
-                            variants={commentItemVariants}
                             initial="hidden"
                             animate="visible"
                             transition={{ delay: commentIndex * 0.08 }}
