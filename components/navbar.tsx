@@ -22,10 +22,9 @@ const Navbar = () => {
   return (
     <nav className="bg-base text-white py-4 px-6 flex justify-between items-center">
       <div className="text-xl font-bold">
-        <button 
-        className='bg-red rounded-lg py-1 p-3 hover:bg-sky'
-        onClick={navigateToHome}>
-          Keluh Kesah | Home
+        <button
+          className='bg-red rounded-lg py-1 p-3 hover:bg-sky'
+          onClick={navigateToHome}>Home
         </button>
       </div>
 
