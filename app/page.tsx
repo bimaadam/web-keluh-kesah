@@ -63,7 +63,6 @@ const HomePage: React.FC = () => {
               top: `${Math.random() * 70 + 10}%`, // Posisi vertikal acak
               left: `${Math.random() * 80 + 10}%`, // Posisi horizontal acak
             }}
-            variants={emojiVariants}
             initial="initial"
             animate="animate"
             custom={index} // Meneruskan index untuk variasi animasi
@@ -80,13 +79,11 @@ const HomePage: React.FC = () => {
         >
           <motion.h1
             className="text-4xl md:text-6xl font-extrabold bg-gradient-to-b from-maroon to-mauve text-transparent bg-clip-text drop-shadow-lg"
-            variants={itemVariants}
           >
             Keluh Kesah Hidup
           </motion.h1>
           <motion.p
             className="text-lg md:text-xl text-white mt-4 max-w-2xl"
-            variants={itemVariants}
           >
             Kadang hidup memang berat, dan nggak apa-apa untuk mengeluarkan unek-unekmu. Mari berbagi keluh kesahmu di sini. Jujur dan lega bersama! 💬✨
           </motion.p>

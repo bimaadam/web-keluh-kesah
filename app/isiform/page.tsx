@@ -60,7 +60,6 @@ const IsiForm: React.FC = () => {
 
       <motion.div
         className="bg-base text-white shadow-lg rounded-lg p-8 max-w-md w-full border border-surface0"
-        variants={formContainerVariants}
         initial="hidden"
         animate="visible"
       >
