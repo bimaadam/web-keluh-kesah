@@ -2,112 +2,88 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Entry, Comment, getRandomEmoji, reactions } from "app/constants/KeluhKesahConstants"
+import { Entry, Comment, reactions } from "app/constants/KeluhKesahConstants"
 import ReactionsPanel from './ReactionsPanel';
 import CommentsSection from './CommentsSection';
 
 interface KeluhKesahEntryProps {
     entry: Entry;
-    entryVariants: { [key: string]: any };
-    index: number;
     votedReactions: { [entryId: string]: { [reactionType: string]: boolean } };
     expandedComments: { [entryId: string]: boolean };
     commentsData: { [entryId: string]: Comment[] };
-    newCommentName: string;
-    setNewCommentName: (name: string) => void;
-    newCommentText: string;
-    setNewCommentText: (text: string) => void;
     submittingCommentFor: string | null;
     onReactionClick: (entryId: string, reactionType: keyof typeof reactions) => Promise<void>;
     onToggleComments: (entryId: string) => Promise<void>;
-    onCommentSubmit: (entryId: string) => Promise<void>;
+    onCommentSubmit: (entryId: string, name: string, text: string) => Promise<boolean>;
 }
 
 const KeluhKesahEntry: React.FC<KeluhKesahEntryProps> = ({
     entry,
-    entryVariants,
-    index,
     votedReactions,
     expandedComments,
     commentsData,
-    newCommentName,
-    setNewCommentName,
-    newCommentText,
-    setNewCommentText,
     submittingCommentFor,
     onReactionClick,
     onToggleComments,
     onCommentSubmit,
 }) => {
-    const isCommentsExpanded = expandedComments[entry.id];
-    const currentComments = commentsData[entry.id] || [];
+    const isCommentsExpanded = !!expandedComments[entry.id];
+    const loadedComments = commentsData[entry.id];
+    const currentComments = loadedComments || [];
+    // Comments are only fetched when a section is opened, so the count is unknown until then
+    const commentCountLabel = loadedComments ? ` (${currentComments.length})` : '';
 
-    const formattedDate = entry.timestamp?.toDate ? new Date(entry.timestamp.toDate()).toLocaleDateString('id-ID', {
-        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    }) : 'Waktu tidak tersedia';
+    const date: Date | undefined = entry.timestamp?.toDate?.();
+    const isThisYear = date?.getFullYear() === new Date().getFullYear();
 
     return (
-        <motion.div
-            key={entry.id}
-            className={`
-        bg-surface1/70 backdrop-blur-sm shadow-xl rounded-xl p-5 sm:p-7 border border-surface0 flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-mauve/50
-      `}
-            initial="hidden"
-            animate="visible"
-            variants={entryVariants}
-            custom={index}
-        >
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
-                <h2 className="text-lg sm:text-xl font-bold text-mauve flex items-center gap-2 mb-2 sm:mb-0 leading-snug">
-                    {entry.name}
-                    <span className="text-sm text-subtext1 font-normal">berkata:</span>
-                    <span className="text-xl sm:text-2xl leading-none" role="img" aria-label="emoji">{getRandomEmoji()}</span>
-                </h2>
-                <p className="text-xs sm:text-sm text-subtext1 opacity-80 mt-1 sm:mt-0 text-right font-light">
-                    {formattedDate}
-                </p>
+        <article className="nb-row pb-[calc(var(--line)*2)]">
+            {/* Like a notebook margin: the date goes left of the red line */}
+            <div className="nb-margin">
+                {date ? (
+                    <time dateTime={date.toISOString()} className="block text-xs leading-line tabular-nums text-muted">
+                        <span>{date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: isThisYear ? undefined : 'numeric' })}</span>
+                        <span className="md:hidden"> · </span>
+                        <span className="md:block">{date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </time>
+                ) : (
+                    <span className="block text-xs leading-line text-muted">Tanpa tanggal</span>
+                )}
             </div>
 
-            {/* --- PERBAIKAN DI SINI --- */}
-            {/* Tambahkan div baru untuk pesan dan pastikan Anda merender entry.message */}
-            <div className="bg-surface0 rounded-lg p-4 mb-4">
-                <p className="text-text font-normal leading-relaxed text-base break-words whitespace-pre-wrap">
+            <div className="nb-body">
+                <p className="ruled whitespace-pre-wrap break-words font-serif text-[1.0625rem]">
                     {entry.message}
                 </p>
-            </div>
-            {/* --- AKHIR PERBAIKAN --- */}
+                <p className="mt-1 text-sm text-muted">— {entry.name?.trim() || 'Anonim'}</p>
 
-            <ReactionsPanel
-                entryId={entry.id}
-                entryData={entry}
-                votedReactions={votedReactions}
-                onReactionClick={onReactionClick}
-            />
-            <div className="flex justify-end items-center mt-4">
-                <motion.button
-                    onClick={() => onToggleComments(entry.id)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-1 text-sm sm:text-base text-subtext1 hover:text-lavender transition-colors font-medium opacity-80 hover:opacity-100"
-                >
-                    {isCommentsExpanded ? 'Sembunyikan Komentar 👆' : `Lihat/Tambah Komentar (${currentComments.length}) 👇`}
-                </motion.button>
-            </div>
-            {isCommentsExpanded && (
-                <CommentsSection
+                <ReactionsPanel
                     entryId={entry.id}
-                    currentComments={currentComments}
-                    isLoadingComments={false}
-                    newCommentName={newCommentName}
-                    setNewCommentName={setNewCommentName}
-                    newCommentText={newCommentText}
-                    setNewCommentText={setNewCommentText}
-                    submittingCommentFor={submittingCommentFor}
-                    onCommentSubmit={onCommentSubmit}
+                    entryData={entry}
+                    votedReactions={votedReactions}
+                    onReactionClick={onReactionClick}
                 />
-            )}
-        </motion.div>
+
+                <button
+                    type="button"
+                    onClick={() => onToggleComments(entry.id)}
+                    aria-expanded={isCommentsExpanded}
+                    className="link mt-3"
+                >
+                    {isCommentsExpanded ? 'Tutup komentar' : `Komentar${commentCountLabel}`}
+                </button>
+
+                {isCommentsExpanded && (
+                    <CommentsSection
+                        entryId={entry.id}
+                        currentComments={currentComments}
+                        isLoadingComments={!loadedComments}
+                        submittingCommentFor={submittingCommentFor}
+                        onCommentSubmit={onCommentSubmit}
+                    />
+                )}
+            </div>
+        </article>
     );
 };
 

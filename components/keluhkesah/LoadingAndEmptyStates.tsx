@@ -2,8 +2,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { ENTRIES_PER_PAGE } from 'app/constants/KeluhKesahConstants';
+import Link from 'next/link';
 
 interface LoadingAndEmptyStatesProps {
     isLoading: boolean;
@@ -11,57 +10,53 @@ interface LoadingAndEmptyStatesProps {
     entriesCount: number;
 }
 
+const SKELETON_ROWS = 3;
+
 const LoadingAndEmptyStates: React.FC<LoadingAndEmptyStatesProps> = ({
     isLoading,
     error,
     entriesCount,
 }) => {
     if (isLoading) {
+        // Blank ruled lines, like a page nobody has written on yet
         return (
-            Array(ENTRIES_PER_PAGE)
-                .fill(0)
-                .map((_, index) => (
-                    <div
-                        key={index}
-                        className="animate-pulse bg-surface1/70 backdrop-blur-sm rounded-xl p-6 shadow-xl border border-surface0 h-52 sm:h-56 flex flex-col justify-between"
-                    >
-                        <div className="h-7 bg-gray-600 rounded-lg w-2/5 mb-4"></div>
-                        <div className="h-5 bg-gray-500 rounded-lg w-full mb-3"></div>
-                        <div className="h-5 bg-gray-500 rounded-lg w-3/4 mb-5"></div>
-                        <div className="flex justify-end gap-3 mt-auto">
-                            <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
-                            <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
-                            <div className="h-9 w-24 bg-gray-700 rounded-full"></div>
+            <div aria-busy="true" aria-label="Memuat keluh kesah">
+                {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+                    <div key={index} className="nb-row pb-[calc(var(--line)*2)] motion-safe:animate-pulse">
+                        <div className="nb-margin">
+                            <div className="mb-2 h-3 w-12 rounded-sm bg-rule md:mb-0 md:ml-auto md:mt-2" />
+                        </div>
+                        <div className="nb-body">
+                            <div className="ruled h-[calc(var(--line)*3)]" />
+                            <div className="mt-2 h-3 w-24 rounded-sm bg-rule" />
                         </div>
                     </div>
-                ))
+                ))}
+            </div>
         );
     }
 
     if (error) {
         return (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-500/30 text-red-300 p-6 rounded-lg text-center flex items-center justify-center gap-2 border border-red-400/50"
-            >
-                😔 {error}
-            </motion.div>
+            <div role="alert" className="nb-row">
+                <div className="nb-margin" />
+                <div className="nb-body">
+                    <p className="font-medium text-danger">Keluh kesah gagal dimuat.</p>
+                    <p className="mt-1 text-sm text-muted">{error}. Cek koneksimu, lalu muat ulang halaman.</p>
+                </div>
+            </div>
         );
     }
 
     if (entriesCount === 0) {
         return (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-surface1/70 backdrop-blur-sm text-subtext0 p-8 rounded-xl text-center shadow-xl border border-surface0"
-            >
-                <p className="text-xl sm:text-2xl mb-3 font-semibold text-lavender">Belum ada keluh kesah nih... 🤫</p>
-                <p className="text-base sm:text-lg text-subtext0 leading-relaxed">
-                    Mungkin kamu bisa jadi yang pertama berbagi? Tekan tombol "Mulai Keluh Kesah" di halaman utama ya! ✨
-                </p>
-            </motion.div>
+            <div className="nb-row">
+                <div className="nb-margin" />
+                <div className="nb-body">
+                    <p className="ruled font-serif text-[1.0625rem]">Halaman ini masih kosong. Belum ada yang nulis.</p>
+                    <Link href="/isiform" className="link mt-3 inline-block">Jadi yang pertama nulis</Link>
+                </div>
+            </div>
         );
     }
 
