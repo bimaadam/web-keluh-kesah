@@ -1,55 +1,49 @@
 'use client'
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { NotebookRow, focusRing, stabilo } from './notebook';
+
+const links = [
+  { href: '/isiform', label: 'Tulis' },
+  { href: '/keluhkesah', label: 'Baca' },
+];
 
 const Navbar = () => {
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const navigateToHome = () => {
-    router.push('/');
-  };
-
-  const navigateToDonasi = () => {
-    router.push('https://saweria.co/bimrin');
-  };
-
-  const navigateToKeluhKesah = () => {
-    router.push('/keluhkesah');
-  };
+  const pathname = usePathname();
 
   return (
-    <nav className="bg-base text-white py-4 px-6 flex justify-between items-center">
-      <div className="text-xl font-bold">
-        <button
-          className='bg-red rounded-lg py-1 p-3 hover:bg-sky'
-          onClick={navigateToHome}>Home
-        </button>
-      </div>
-
-      <div className="flex items-center md:hidden">
-        <button onClick={() => setIsOpen(!isOpen)} className="text-white">
-          {/* Hamburger Icon */}
-          ☰
-        </button>
-      </div>
-
-      <div className={`flex-col md:flex md:flex-row md:space-x-4 ${isOpen ? 'block' : 'hidden'} md:block`}>
-        <button
-          onClick={navigateToDonasi}
-          className="bg-mauve mr-1 hover:bg-pink text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
-        >
-          Donasi
-        </button>
-        <button
-          onClick={navigateToKeluhKesah}
-          className="bg-surface1 hover:bg-red text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
-        >
-          Keluh Kesah Pengguna Lain
-        </button>
-      </div>
-    </nav>
+    <NotebookRow as="header" className="border-b border-rule">
+      <nav aria-label="Utama" className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-5">
+        <Link href="/" className={`font-serif text-xl font-medium tracking-tight italic ${focusRing}`}>
+          Keluh Kesah
+        </Link>
+        <ul className="flex items-baseline gap-5 text-sm font-medium">
+          {links.map(({ href, label }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={pathname === href ? 'page' : undefined}
+                className={`px-0.5 underline-offset-4 hover:underline aria-[current=page]:bg-size-[100%_85%] aria-[current=page]:text-on-highlight ${stabilo} ${focusRing}`}
+              >
+                {label}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <a
+              href="https://saweria.co/bimrin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`px-0.5 text-muted underline-offset-4 hover:text-ink hover:underline ${focusRing}`}
+            >
+              Donasi <span aria-hidden="true">↗</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </NotebookRow>
   );
 };
 

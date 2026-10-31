@@ -1,15 +1,14 @@
 import React from 'react';
+import { NotebookRow } from './notebook';
 
 const Footerss = () => {
   return (
-    <div className="bg-base text-pink py-4 w-full">
-      <footer className="text-center">
-        <p>
-          Made with ❤️ by <span className="text-white font-bold">Unknown</span>
-        </p>
-        <p className="text-sm mt-1">© {new Date().getFullYear()} All Rights Reserved</p>
-      </footer>
-    </div>
+    <NotebookRow as="footer" className="mt-auto border-t border-rule">
+      <div className="flex flex-wrap justify-between gap-x-6 gap-y-1 py-6 text-xs text-muted">
+        <p>Semua tulisan di sini anonim dan bisa dibaca siapa saja.</p>
+        <p>© {new Date().getFullYear()} · Dibuat oleh Unknown</p>
+      </div>
+    </NotebookRow>
   );
 };
 

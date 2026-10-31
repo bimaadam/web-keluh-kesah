@@ -1,115 +1,103 @@
 // components/keluhkesah/CommentsSection.tsx
 'use client';
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
 import { Comment } from 'app/constants/KeluhKesahConstants';
+import { inputField, primaryButton, ruledField } from '../notebook';
 
 interface CommentsSectionProps {
     entryId: string;
     currentComments: Comment[];
     isLoadingComments: boolean;
-    newCommentName: string;
-    setNewCommentName: (name: string) => void;
-    newCommentText: string;
-    setNewCommentText: (text: string) => void;
     submittingCommentFor: string | null;
-    onCommentSubmit: (entryId: string) => Promise<void>;
+    onCommentSubmit: (entryId: string, name: string, text: string) => Promise<boolean>;
 }
 
-const commentSectionVariants = {
-    hidden: { opacity: 0, height: 0, transition: { duration: 0.2, ease: 'easeOut' } },
-    visible: { opacity: 1, height: 'auto', transition: { duration: 0.4, ease: 'easeOut' } },
-};
-
-const commentItemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' } },
-};
+const MAX_COMMENT_LENGTH = 200;
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({
     entryId,
     currentComments,
     isLoadingComments,
-    newCommentName,
-    setNewCommentName,
-    newCommentText,
-    setNewCommentText,
     submittingCommentFor,
     onCommentSubmit,
 }) => {
-    return (
-        <AnimatePresence>
-            <motion.div
-                key="comments-section"
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="mt-5 pt-5 border-t border-surface0/50 space-y-4"
-            >
-                {currentComments.length === 0 && !isLoadingComments ? (
-                    <p className="text-sm text-subtext1 text-center italic py-3 opacity-70">
-                        Belum ada komentar di sini. Jadilah yang pertama! 💬
-                    </p>
-                ) : (
-                    currentComments.map((comment, commentIndex) => (
-                        <motion.div
-                            key={comment.id}
-                            initial="hidden"
-                            animate="visible"
-                            transition={{ delay: commentIndex * 0.08 }}
-                            className="bg-surface0/70 backdrop-blur-sm p-4 rounded-lg border border-surface1/50 flex flex-col shadow-sm"
-                        >
-                            <p className="text-sm font-semibold text-text flex items-center gap-1 leading-tight">
-                                {comment.name} <span className="text-xs text-subtext1 font-light opacity-90">mengomentari:</span>
-                            </p>
-                            <p className="text-sm text-white italic mt-1 leading-relaxed">"{comment.comment}"</p>
-                            <p className="text-xs text-subtext1 mt-2 text-right opacity-70">
-                                {new Date(comment.timestamp?.toDate()).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                        </motion.div>
-                    ))
-                )}
+    // Kept per section so typing in one entry's form doesn't show up in another
+    const [newCommentName, setNewCommentName] = useState('');
+    const [newCommentText, setNewCommentText] = useState('');
 
-                <div className="mt-5 p-5 bg-surface0/70 backdrop-blur-sm rounded-xl border border-surface1/50 shadow-inner">
-                    <h3 className="text-base sm:text-lg font-semibold text-mauve mb-4">Tambah Komentar Baru:</h3>
-                    <input
-                        type="text"
-                        placeholder="Nama kamu (opsional, maks 30 karakter)"
-                        value={newCommentName}
-                        onChange={(e) => setNewCommentName(e.target.value)}
-                        className="w-full p-3 mb-3 rounded-lg bg-base/60 text-white focus:outline-none focus:ring-2 focus:ring-lavender placeholder-subtext1 text-sm sm:text-base border border-surface0"
-                        maxLength={30}
-                    />
-                    <textarea
-                        placeholder="Ketik komentar di sini... (maks 200 karakter)"
-                        value={newCommentText}
-                        onChange={(e) => setNewCommentText(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-base/60 text-white focus:outline-none focus:ring-2 focus:ring-lavender resize-y min-h-[70px] max-h-[150px] placeholder-subtext1 text-sm sm:text-base border border-surface0"
-                        rows={3}
-                        maxLength={200}
-                        required
-                    ></textarea>
-                    <p className="text-right text-xs text-subtext1 mt-2 opacity-80">
-                        {newCommentText.length} / 200 karakter
-                    </p>
-                    <motion.button
-                        onClick={() => onCommentSubmit(entryId)}
-                        whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(var(--color-pink-rgb), 0.7)' }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`mt-4 w-full py-2.5 px-4 rounded-lg font-bold text-white transition duration-300 flex items-center justify-center gap-2 text-base sm:text-lg
-              ${submittingCommentFor === entryId ? 'bg-mauve/60 cursor-not-allowed' : 'bg-lavender hover:bg-pink hover:shadow-lg'}`}
-                        disabled={submittingCommentFor === entryId}
-                    >
-                        {submittingCommentFor === entryId ? (
-                            <>Mengirim... <span className="animate-spin">🌀</span></>
-                        ) : (
-                            <>Kirim Komentar <span className="text-xl">🎉</span></>
-                        )}
-                    </motion.button>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const isSaved = await onCommentSubmit(entryId, newCommentName, newCommentText);
+        if (isSaved) {
+            setNewCommentName('');
+            setNewCommentText('');
+        }
+    };
+
+    // Wait for existing comments first, otherwise the loaded list would replace a comment shown before it arrived
+    const isSubmitDisabled = submittingCommentFor === entryId || isLoadingComments;
+
+    return (
+        <div className="mt-4 md:pl-6">
+            {isLoadingComments ? (
+                <p className="text-sm text-muted">Memuat komentar…</p>
+            ) : currentComments.length === 0 ? (
+                <p className="text-sm text-muted">Belum ada komentar. Jadi yang pertama.</p>
+            ) : (
+                <ul className="grid gap-4">
+                    {currentComments.map(comment => {
+                        const time = comment.timestamp?.toDate?.().toLocaleString('id-ID', {
+                            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                        });
+
+                        return (
+                            <li key={comment.id}>
+                                <p className="text-xs text-muted">
+                                    <span className="font-medium text-ink">{comment.name}</span>
+                                    {time && <> · {time}</>}
+                                </p>
+                                <p className="mt-0.5 font-serif text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap">
+                                    {comment.comment}
+                                </p>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-5 grid gap-3">
+                <input
+                    type="text"
+                    id={`comment-name-${entryId}`}
+                    aria-label="Nama"
+                    placeholder="Nama (boleh dikosongin)"
+                    value={newCommentName}
+                    onChange={(e) => setNewCommentName(e.target.value)}
+                    className={`${inputField} max-w-[22rem]`}
+                    maxLength={30}
+                />
+                <textarea
+                    id={`comment-text-${entryId}`}
+                    aria-label="Komentar"
+                    placeholder="Tulis komentar…"
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    className={ruledField}
+                    rows={3}
+                    maxLength={MAX_COMMENT_LENGTH}
+                    required
+                ></textarea>
+                <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs tabular-nums text-muted">
+                        {newCommentText.length}/{MAX_COMMENT_LENGTH}
+                    </span>
+                    <button type="submit" disabled={isSubmitDisabled} className={primaryButton}>
+                        {submittingCommentFor === entryId ? 'Mengirim…' : 'Kirim komentar'}
+                    </button>
                 </div>
-            </motion.div>
-        </AnimatePresence>
+            </form>
+        </div>
     );
 };
 
