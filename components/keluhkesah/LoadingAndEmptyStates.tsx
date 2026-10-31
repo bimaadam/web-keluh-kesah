@@ -3,6 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { NotebookRow, textLink } from '../notebook';
 
 interface LoadingAndEmptyStatesProps {
     isLoading: boolean;
@@ -22,15 +23,14 @@ const LoadingAndEmptyStates: React.FC<LoadingAndEmptyStatesProps> = ({
         return (
             <div aria-busy="true" aria-label="Memuat keluh kesah">
                 {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-                    <div key={index} className="nb-row pb-[calc(var(--line)*2)] motion-safe:animate-pulse">
-                        <div className="nb-margin">
-                            <div className="mb-2 h-3 w-12 rounded-sm bg-rule md:mb-0 md:ml-auto md:mt-2" />
-                        </div>
-                        <div className="nb-body">
-                            <div className="ruled h-[calc(var(--line)*3)]" />
-                            <div className="mt-2 h-3 w-24 rounded-sm bg-rule" />
-                        </div>
-                    </div>
+                    <NotebookRow
+                        key={index}
+                        className="pb-line-2 motion-safe:animate-pulse"
+                        margin={<div className="mb-2 h-3 w-12 rounded-xs bg-rule md:mt-2 md:mb-0 md:ml-auto" />}
+                    >
+                        <div className="ruled h-[calc(var(--line)*3)]" />
+                        <div className="mt-2 h-3 w-24 rounded-xs bg-rule" />
+                    </NotebookRow>
                 ))}
             </div>
         );
@@ -38,25 +38,19 @@ const LoadingAndEmptyStates: React.FC<LoadingAndEmptyStatesProps> = ({
 
     if (error) {
         return (
-            <div role="alert" className="nb-row">
-                <div className="nb-margin" />
-                <div className="nb-body">
-                    <p className="font-medium text-danger">Keluh kesah gagal dimuat.</p>
-                    <p className="mt-1 text-sm text-muted">{error}. Cek koneksimu, lalu muat ulang halaman.</p>
-                </div>
-            </div>
+            <NotebookRow role="alert">
+                <p className="font-medium text-danger">Keluh kesah gagal dimuat.</p>
+                <p className="mt-1 text-sm text-muted">{error}. Cek koneksimu, lalu muat ulang halaman.</p>
+            </NotebookRow>
         );
     }
 
     if (entriesCount === 0) {
         return (
-            <div className="nb-row">
-                <div className="nb-margin" />
-                <div className="nb-body">
-                    <p className="ruled font-serif text-[1.0625rem]">Halaman ini masih kosong. Belum ada yang nulis.</p>
-                    <Link href="/isiform" className="link mt-3 inline-block">Jadi yang pertama nulis</Link>
-                </div>
-            </div>
+            <NotebookRow>
+                <p className="ruled font-serif text-body">Halaman ini masih kosong. Belum ada yang nulis.</p>
+                <Link href="/isiform" className={`${textLink} mt-3 inline-block`}>Jadi yang pertama nulis</Link>
+            </NotebookRow>
         );
     }
 

@@ -1,184 +1,78 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /*
  * Layout: the back pages of a school notebook. A red margin line runs down the page,
  * dates and labels sit in the margin, and writing sits on pale blue rules.
  * Ink is ballpoint blue; whatever you've marked gets a stabilo swipe.
+ *
+ * The palette is plain CSS variables so dark mode only swaps values;
+ * @theme inline turns them into utilities (bg-paper, text-ink, border-rule, ...).
  */
 :root {
-  --paper: 247 249 250;
-  --paper-raised: 255 255 255;
-  --ink: 27 39 77;
-  --ink-muted: 92 103 130;
-  --rule: 205 219 236;
-  --redline: 229 140 150;
-  --accent: 36 70 182;
-  --on-accent: 247 249 250;
-  --highlight: 248 230 95;
-  --on-highlight: 27 39 77;
-  --danger: 178 34 52;
+  --paper: #f7f9fa;
+  --paper-raised: #ffffff;
+  --ink: #1b274d;
+  --ink-muted: #5c6782;
+  --rule: #cddbec;
+  --redline: #e58c96;
+  --accent: #2446b6;
+  --on-accent: #f7f9fa;
+  --highlight: #f8e65f;
+  --on-highlight: #1b274d;
+  --danger: #b22234;
 
   --line: 1.75rem; /* rule spacing; writing surfaces use it as their line-height */
-  --margin-w: 0px; /* width of the margin column left of the red line */
-  color-scheme: light;
+  --margin-col: 7.5rem; /* margin column left of the red line, md and up */
 }
 
 /* Same notebook, at night */
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: 17 21 31;
-    --paper-raised: 24 29 42;
-    --ink: 221 227 240;
-    --ink-muted: 139 150 174;
-    --rule: 39 49 69;
-    --redline: 140 62 76;
-    --accent: 138 164 255;
-    --on-accent: 17 21 31;
-    --highlight: 231 211 76;
-    --on-highlight: 23 26 33;
-    --danger: 255 122 138;
-    color-scheme: dark;
+    --paper: #11151f;
+    --paper-raised: #181d2a;
+    --ink: #dde3f0;
+    --ink-muted: #8b96ae;
+    --rule: #273145;
+    --redline: #8c3e4c;
+    --accent: #8aa4ff;
+    --on-accent: #11151f;
+    --highlight: #e7d34c;
+    --on-highlight: #171a21;
+    --danger: #ff7a8a;
   }
 }
 
-@media (min-width: 768px) {
-  :root {
-    --margin-w: 7.5rem;
-  }
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-redline: var(--redline);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-highlight: var(--highlight);
+  --color-on-highlight: var(--on-highlight);
+  --color-danger: var(--danger);
+
+  --font-serif: var(--font-literata), Georgia, serif;
+  --font-sans: var(--font-onest), system-ui, sans-serif;
+
+  --text-body: 1.0625rem;
+  --text-body--line-height: var(--line);
+
+  --spacing-line: var(--line);
+  --spacing-line-2: calc(var(--line) * 2);
+  --spacing-margin: var(--margin-col);
+  --leading-line: var(--line);
+  --leading-line-2: calc(var(--line) * 2);
 }
 
-@layer base {
-  body {
-    @apply bg-paper font-sans text-ink antialiased;
-  }
-
-  h1,
-  h2,
-  h3 {
-    text-wrap: balance;
-  }
-
-  ::selection {
-    background: rgb(var(--highlight));
-    color: rgb(var(--on-highlight));
-  }
-
-  :focus-visible {
-    outline: 2px solid rgb(var(--accent));
-    outline-offset: 3px;
-  }
-}
-
-@layer components {
-  .gutter {
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
-  }
-
-  .notebook {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    min-height: 100dvh;
-    max-width: 50rem;
-    margin-inline: auto;
-  }
-
-  .notebook::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    left: var(--margin-w);
-    width: 2px;
-    background: rgb(var(--redline));
-    pointer-events: none;
-  }
-
-  /* Phones: margin content stacks above the body. Wider screens: margin | body */
-  .nb-margin,
-  .nb-body {
-    min-width: 0;
-    padding-left: 1rem;
-  }
-
-  @media (min-width: 768px) {
-    .nb-row {
-      display: grid;
-      grid-template-columns: var(--margin-w) minmax(0, 1fr);
-    }
-
-    .nb-margin {
-      padding-left: 0;
-      padding-right: 1.25rem;
-      text-align: right;
-    }
-
-    .nb-body {
-      padding-left: 1.5rem;
-    }
-  }
-
-  .meta {
-    @apply text-xs uppercase tracking-[0.08em] text-muted;
-  }
-
-  /* Writing surface: lines sit just under the text baseline, one --line apart */
-  .ruled {
-    line-height: var(--line);
-    background-image: linear-gradient(
-      to bottom,
-      transparent calc(var(--line) - 1px),
-      rgb(var(--rule)) calc(var(--line) - 1px)
-    );
-    background-size: 100% var(--line);
-    background-position: 0 -0.375rem;
-    background-attachment: local;
-  }
-
-  /* Highlighter swipe for pressed reactions and the current page.
-     It covers the full glyph height because the text switches to --on-highlight,
-     which would vanish against the dark paper wherever the swipe didn't reach. */
-  .stabilo {
-    background-image: linear-gradient(rgb(var(--highlight)), rgb(var(--highlight)));
-    background-repeat: no-repeat;
-    background-position: 0 50%;
-    background-size: 0% 85%;
-    transition: background-size 300ms ease-out, background-color 150ms;
-  }
-
-  .stabilo[aria-pressed="true"],
-  .stabilo[aria-current="page"] {
-    background-size: 100% 85%;
-    color: rgb(var(--on-highlight));
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .stabilo {
-      transition: none;
-    }
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-[3px] bg-accent px-5 py-2.5 text-sm font-medium text-on-accent transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-accent;
-  }
-
-  .btn-quiet {
-    @apply inline-flex items-center justify-center gap-2 rounded-[3px] border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-60;
-  }
-
-  .link {
-    @apply text-sm font-medium text-accent underline decoration-accent/40 underline-offset-4 transition-colors hover:decoration-accent;
-  }
-
-  .field {
-    @apply w-full rounded-[3px] border border-rule bg-paper-raised px-3 py-2.5 text-base text-ink placeholder:text-muted/70;
-  }
-
-  /* Textareas are written straight onto the ruled paper, without a box */
-  .field-ruled {
-    @apply ruled block w-full resize-y bg-transparent px-1 font-serif text-[1.0625rem] text-ink placeholder:text-muted/70;
-  }
+/* Writing surface: blue rules one line apart, sitting just under each text baseline */
+@utility ruled {
+  line-height: var(--line);
+  background-image: linear-gradient(to bottom, transparent calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px));
+  background-size: 100% var(--line);
+  background-position: 0 -0.375rem;
+  background-attachment: local;
 }

@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { Comment } from 'app/constants/KeluhKesahConstants';
+import { inputField, primaryButton, ruledField } from '../notebook';
 
 interface CommentsSectionProps {
     entryId: string;
@@ -56,7 +57,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                                     <span className="font-medium text-ink">{comment.name}</span>
                                     {time && <> · {time}</>}
                                 </p>
-                                <p className="mt-0.5 whitespace-pre-wrap break-words font-serif text-[0.9375rem] leading-relaxed">
+                                <p className="mt-0.5 font-serif text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap">
                                     {comment.comment}
                                 </p>
                             </li>
@@ -73,7 +74,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                     placeholder="Nama (boleh dikosongin)"
                     value={newCommentName}
                     onChange={(e) => setNewCommentName(e.target.value)}
-                    className="field max-w-[22rem] text-sm"
+                    className={`${inputField} max-w-[22rem]`}
                     maxLength={30}
                 />
                 <textarea
@@ -82,7 +83,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                     placeholder="Tulis komentar…"
                     value={newCommentText}
                     onChange={(e) => setNewCommentText(e.target.value)}
-                    className="field-ruled text-base"
+                    className={ruledField}
                     rows={3}
                     maxLength={MAX_COMMENT_LENGTH}
                     required
@@ -91,7 +92,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                     <span className="text-xs tabular-nums text-muted">
                         {newCommentText.length}/{MAX_COMMENT_LENGTH}
                     </span>
-                    <button type="submit" disabled={isSubmitDisabled} className="btn-primary">
+                    <button type="submit" disabled={isSubmitDisabled} className={primaryButton}>
                         {submittingCommentFor === entryId ? 'Mengirim…' : 'Kirim komentar'}
                     </button>
                 </div>

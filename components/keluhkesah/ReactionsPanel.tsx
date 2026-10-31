@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { Entry, reactions } from "app/constants/KeluhKesahConstants"
+import { focusRing, stabilo } from '../notebook';
 
 interface ReactionsPanelProps {
     entryId: string;
@@ -34,7 +35,7 @@ const ReactionsPanel: React.FC<ReactionsPanelProps> = ({
                         aria-pressed={isVoted}
                         aria-label={`${reactionInfo.label}: ${count}`}
                         title={reactionInfo.label}
-                        className="stabilo inline-flex items-center gap-1.5 rounded-[3px] px-1.5 py-1 text-sm tabular-nums hover:bg-rule/40"
+                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-[3px] px-1.5 py-1 text-sm tabular-nums hover:bg-rule/40 aria-pressed:bg-size-[100%_85%] aria-pressed:text-on-highlight ${stabilo} ${focusRing}`}
                     >
                         <span aria-hidden="true">{isVoted ? reactionInfo.votedEmoji : reactionInfo.emoji}</span>
                         <span className={isVoted ? 'font-medium' : 'text-muted'}>{count}</span>

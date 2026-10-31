@@ -29,10 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className={`${literata.variable} ${onest.variable}`}>
-        <div className="gutter">
-          <div className="notebook">
+    <html lang="id" className="scheme-light dark:scheme-dark">
+      <body
+        className={`${literata.variable} ${onest.variable} bg-paper font-sans text-ink antialiased selection:bg-highlight selection:text-on-highlight`}
+      >
+        <div className="pr-[max(16px,env(safe-area-inset-right,0px))] pl-[max(16px,env(safe-area-inset-left,0px))]">
+          {/* The red margin line runs the full height of the page */}
+          <div className="relative mx-auto flex min-h-dvh max-w-[50rem] flex-col before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-redline md:before:left-margin">
             <Navbar />
             <main>{children}</main>
             <Footerss />
@@ -42,15 +45,15 @@ export default function RootLayout({
           position="bottom-center"
           toastOptions={{
             style: {
-              background: "rgb(var(--paper-raised))",
-              color: "rgb(var(--ink))",
-              border: "1px solid rgb(var(--rule))",
+              background: "var(--paper-raised)",
+              color: "var(--ink)",
+              border: "1px solid var(--rule)",
               borderRadius: "3px",
               fontSize: "0.875rem",
-              boxShadow: "0 8px 24px -12px rgb(var(--ink) / 0.35)",
+              boxShadow: "0 8px 24px -12px color-mix(in oklab, var(--ink) 35%, transparent)",
             },
-            success: { iconTheme: { primary: "rgb(var(--accent))", secondary: "rgb(var(--paper-raised))" } },
-            error: { iconTheme: { primary: "rgb(var(--danger))", secondary: "rgb(var(--paper-raised))" } },
+            success: { iconTheme: { primary: "var(--accent)", secondary: "var(--paper-raised)" } },
+            error: { iconTheme: { primary: "var(--danger)", secondary: "var(--paper-raised)" } },
           }}
         />
       </body>

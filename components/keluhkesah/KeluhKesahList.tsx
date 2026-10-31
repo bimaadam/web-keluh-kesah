@@ -29,6 +29,7 @@ import { getVotedReactions, saveVotedReactions, getExpandedComments, saveExpande
 
 import KeluhKesahEntry from './KeluhKesahEntry';
 import LoadingAndEmptyStates from './LoadingAndEmptyStates';
+import { NotebookRow, quietButton } from '../notebook';
 
 const KeluhKesahList: React.FC = () => {
     const [entries, setEntries] = useState<Entry[]>([]);
@@ -242,19 +243,18 @@ const KeluhKesahList: React.FC = () => {
     };
 
     return (
-        <section className="pt-line pb-[calc(var(--line)*2)]">
-            <div className="nb-row">
-                <div className="nb-margin" />
-                <header className="nb-body flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <section className="pt-line pb-line-2">
+            <NotebookRow>
+                <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
                     <div className="max-w-[34rem]">
-                        <h1 className="font-serif text-3xl font-medium tracking-tight md:text-4xl">Keluh kesah orang-orang</h1>
+                        <h1 className="font-serif text-3xl font-medium tracking-tight text-balance md:text-4xl">Keluh kesah orang-orang</h1>
                         <p className="mt-2 text-muted">
                             Yang terbaru ada di atas. Kalau ada yang relate, kasih reaksi atau tinggalin komentar.
                         </p>
                     </div>
-                    <Link href="/isiform" className="btn-quiet">Tulis punyamu</Link>
+                    <Link href="/isiform" className={quietButton}>Tulis punyamu</Link>
                 </header>
-            </div>
+            </NotebookRow>
 
             <div className="mt-[calc(var(--line)*1.5)]">
                 {/* Handles the loading, error, and empty states */}
@@ -275,19 +275,16 @@ const KeluhKesahList: React.FC = () => {
                 ))}
 
                 {!isLoading && !error && hasMore && (
-                    <div className="nb-row">
-                        <div className="nb-margin" />
-                        <div className="nb-body">
-                            <button
-                                type="button"
-                                onClick={() => lastVisible && fetchEntries(lastVisible)}
-                                disabled={isFetchingMore}
-                                className="btn-quiet"
-                            >
-                                {isFetchingMore ? 'Memuat…' : 'Tampilkan yang lebih lama'}
-                            </button>
-                        </div>
-                    </div>
+                    <NotebookRow>
+                        <button
+                            type="button"
+                            onClick={() => lastVisible && fetchEntries(lastVisible)}
+                            disabled={isFetchingMore}
+                            className={quietButton}
+                        >
+                            {isFetchingMore ? 'Memuat…' : 'Tampilkan yang lebih lama'}
+                        </button>
+                    </NotebookRow>
                 )}
             </div>
         </section>

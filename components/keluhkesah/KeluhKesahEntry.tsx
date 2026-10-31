@@ -5,6 +5,7 @@ import React from 'react';
 import { Entry, Comment, reactions } from "app/constants/KeluhKesahConstants"
 import ReactionsPanel from './ReactionsPanel';
 import CommentsSection from './CommentsSection';
+import { NotebookRow, textLink } from '../notebook';
 
 interface KeluhKesahEntryProps {
     entry: Entry;
@@ -36,54 +37,50 @@ const KeluhKesahEntry: React.FC<KeluhKesahEntryProps> = ({
     const date: Date | undefined = entry.timestamp?.toDate?.();
     const isThisYear = date?.getFullYear() === new Date().getFullYear();
 
+    // Like a notebook margin: the date goes left of the red line
+    const dateLabel = date ? (
+        <time dateTime={date.toISOString()} className="block text-xs leading-line text-muted tabular-nums">
+            <span>{date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: isThisYear ? undefined : 'numeric' })}</span>
+            <span className="md:hidden"> · </span>
+            <span className="md:block">{date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+        </time>
+    ) : (
+        <span className="block text-xs leading-line text-muted">Tanpa tanggal</span>
+    );
+
     return (
-        <article className="nb-row pb-[calc(var(--line)*2)]">
-            {/* Like a notebook margin: the date goes left of the red line */}
-            <div className="nb-margin">
-                {date ? (
-                    <time dateTime={date.toISOString()} className="block text-xs leading-line tabular-nums text-muted">
-                        <span>{date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: isThisYear ? undefined : 'numeric' })}</span>
-                        <span className="md:hidden"> · </span>
-                        <span className="md:block">{date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </time>
-                ) : (
-                    <span className="block text-xs leading-line text-muted">Tanpa tanggal</span>
-                )}
-            </div>
+        <NotebookRow as="article" className="pb-line-2" margin={dateLabel}>
+            <p className="ruled font-serif text-body break-words whitespace-pre-wrap">
+                {entry.message}
+            </p>
+            <p className="mt-1 text-sm text-muted">— {entry.name?.trim() || 'Anonim'}</p>
 
-            <div className="nb-body">
-                <p className="ruled whitespace-pre-wrap break-words font-serif text-[1.0625rem]">
-                    {entry.message}
-                </p>
-                <p className="mt-1 text-sm text-muted">— {entry.name?.trim() || 'Anonim'}</p>
+            <ReactionsPanel
+                entryId={entry.id}
+                entryData={entry}
+                votedReactions={votedReactions}
+                onReactionClick={onReactionClick}
+            />
 
-                <ReactionsPanel
+            <button
+                type="button"
+                onClick={() => onToggleComments(entry.id)}
+                aria-expanded={isCommentsExpanded}
+                className={`${textLink} mt-3`}
+            >
+                {isCommentsExpanded ? 'Tutup komentar' : `Komentar${commentCountLabel}`}
+            </button>
+
+            {isCommentsExpanded && (
+                <CommentsSection
                     entryId={entry.id}
-                    entryData={entry}
-                    votedReactions={votedReactions}
-                    onReactionClick={onReactionClick}
+                    currentComments={currentComments}
+                    isLoadingComments={!loadedComments}
+                    submittingCommentFor={submittingCommentFor}
+                    onCommentSubmit={onCommentSubmit}
                 />
-
-                <button
-                    type="button"
-                    onClick={() => onToggleComments(entry.id)}
-                    aria-expanded={isCommentsExpanded}
-                    className="link mt-3"
-                >
-                    {isCommentsExpanded ? 'Tutup komentar' : `Komentar${commentCountLabel}`}
-                </button>
-
-                {isCommentsExpanded && (
-                    <CommentsSection
-                        entryId={entry.id}
-                        currentComments={currentComments}
-                        isLoadingComments={!loadedComments}
-                        submittingCommentFor={submittingCommentFor}
-                        onCommentSubmit={onCommentSubmit}
-                    />
-                )}
-            </div>
-        </article>
+            )}
+        </NotebookRow>
     );
 };
 
